@@ -1,12 +1,12 @@
 package ticker
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/mmcdole/gofeed"
 
 	"dashboard/internal/theme"
@@ -184,12 +184,12 @@ func (w *Widget) View(width int) string {
 		text += string(w.track[:need])
 	}
 
-	labelStyle := theme.Title.Copy().
-		Background(theme.DimBg).
-		Foreground(theme.Primary)
+	label := "TECH"
+	combined := " " + label + " | " + text
+	if utf8.RuneCountInString(combined) > width {
+		combined = string([]rune(combined)[:width])
+	}
+	combined = fmt.Sprintf("%-*s", width, combined)
 
-	return lipgloss.JoinHorizontal(lipgloss.Center,
-		labelStyle.Render(" TECH "),
-		theme.Base.Render(" "+text+" "),
-	)
+	return theme.Base.Render(combined)
 }
