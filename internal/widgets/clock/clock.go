@@ -73,7 +73,7 @@ func bigClock(t string, width int) string {
 
 	var lines [5]string
 
-	for _, ch := range t {
+	for pos, ch := range t {
 		var idx int
 		if ch == ':' {
 			idx = 10
@@ -84,6 +84,11 @@ func bigClock(t string, width int) string {
 		}
 		for i := range 5 {
 			lines[i] += digits[idx][i]
+		}
+		if pos == 1 || pos == 2 || pos == 4 || pos == 5 {
+			for i := range 5 {
+				lines[i] += " "
+			}
 		}
 	}
 
