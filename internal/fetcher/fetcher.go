@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -28,8 +29,17 @@ func (f *Fetcher) Fetch(url string) ([]byte, error) {
 	for i := range f.MaxRetries {
 		resp, err := f.client.Get(url)
 		if err == nil {
-			defer resp.Body.Close()
+			if resp.StatusCode != 200 {
+				resp.Body.Close()
+				lastErr = fmt.Errorf("HTTP %d", resp.StatusCode)
+				if i < f.MaxRetries-1 {
+					delay := time.Duration(math.Pow(2, float64(i))) * f.BaseDelay
+					time.Sleep(delay)
+				}
+				continue
+			}
 			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
 			if err == nil {
 				return body, nil
 			}

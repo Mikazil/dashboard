@@ -107,7 +107,11 @@ func (w *Widget) View(width, height int) string {
 	var content string
 
 	if w.err != nil {
-		content = theme.Error.Render(" [!] Weather error ")
+		errMsg := w.err.Error()
+		if len(errMsg) > 30 {
+			errMsg = errMsg[:30]
+		}
+		content = theme.Error.Render(" ! " + errMsg + " ")
 	} else if w.data == nil {
 		content = theme.DimText.Render(" Loading... ")
 	} else {
