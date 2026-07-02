@@ -50,13 +50,13 @@ func (w *Widget) View(width int) string {
 	dateLine2 := strings.Repeat(" ", pad2) + theme.DimText.Render(dateStr2)
 
 	return lipgloss.JoinVertical(lipgloss.Center,
-		bigClock(timeStr),
+		bigClock(timeStr, width),
 		dateLine1,
 		dateLine2,
 	)
 }
 
-func bigClock(t string) string {
+func bigClock(t string, width int) string {
 	digits := [][]string{
 		{" ██ ", "█  █", "█  █", "█  █", " ██ "},
 		{"  █ ", " ██ ", "  █ ", "  █ ", " ███"},
@@ -83,14 +83,20 @@ func bigClock(t string) string {
 			continue
 		}
 		for i := range 5 {
-			lines[i] += digits[idx][i] + " "
+			lines[i] += digits[idx][i]
 		}
+	}
+
+	clockWidth := lipgloss.Width(lines[0])
+	padLeft := (width - clockWidth) / 2
+	if padLeft < 0 {
+		padLeft = 0
 	}
 
 	result := make([]string, 5)
 	for i := range lines {
-		style := theme.BigText.Copy().Foreground(theme.Primary)
-		result[i] = style.Render(lines[i])
+		styled := theme.BigText.Copy().Foreground(theme.Primary)
+		result[i] = styled.Render(strings.Repeat(" ", padLeft) + lines[i])
 	}
 
 	return strings.Join(result, "\n")
