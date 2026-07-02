@@ -4,8 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"dashboard/internal/theme"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Widget struct {
@@ -28,7 +29,7 @@ func (w *Widget) Update() {
 
 func (w *Widget) View(width, height int) string {
 	now := w.time
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation("Asia/Bangkok")
 	if loc != nil {
 		now = now.In(loc)
 	}
