@@ -24,7 +24,7 @@ func (w *Widget) Update() {
 }
 
 func (w *Widget) View(width int) string {
-	now := time.Now()
+	now := w.now
 	year, month, _ := now.Date()
 	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	lastDay := firstDay.AddDate(0, 1, -1)
@@ -55,11 +55,12 @@ func (w *Widget) View(width int) string {
 
 		var cell string
 		if isToday {
-			cell = fmt.Sprintf("%2d", day)
-			cell = theme.Base.Copy().Background(theme.Secondary).Foreground(theme.Bg).Render(cell)
+			highlight := theme.Base.Copy().
+				Background(theme.Secondary).
+				Foreground(theme.Bg)
+			cell = highlight.Render(fmt.Sprintf("%2d", day))
 		} else {
-			cell = fmt.Sprintf("%2d", day)
-			cell = theme.DimText.Render(cell)
+			cell = theme.DimText.Render(fmt.Sprintf("%2d", day))
 		}
 
 		if line.Len() > 0 {

@@ -23,22 +23,31 @@ type Rate struct {
 }
 
 type Widget struct {
-	rates    []Rate
-	cryptos  []Rate
-	fetcher  *fetcher.Fetcher
-	codes    []string
+	rates         []Rate
+	cryptos       []Rate
+	ftch          *fetcher.Fetcher
+	codes         []string
 	cryptoSymbols []string
-	interval time.Duration
-	lastFetch time.Time
-	err      error
+	cryptoNames   map[string]string
+	interval      time.Duration
+	lastFetch     time.Time
+	err           error
 }
 
 func New(codes, cryptoSymbols []string, interval time.Duration) *Widget {
+	cryptoNames := map[string]string{
+		"bitcoin":     "BTC",
+		"ethereum":    "ETH",
+		"tether":      "USDT",
+		"solana":      "SOL",
+		"cardano":     "ADA",
+	}
 	return &Widget{
-		fetcher:  fetcher.New(15 * time.Second),
-		codes:    codes,
+		ftch:          fetcher.New(15 * time.Second),
+		codes:         codes,
 		cryptoSymbols: cryptoSymbols,
-		interval: interval,
+		cryptoNames:   cryptoNames,
+		interval:      interval,
 	}
 }
 
@@ -59,6 +68,7 @@ func (w *Widget) fetch() {
 
 func (w *Widget) fetchFiat() {
 	oldRates := w.rates
+	w.err = nil
 
 	resp, err := http.Get("https://www.cbr.ru/scripts/XML_daily.asp")
 	if err != nil {
@@ -92,6 +102,7 @@ func (w *Widget) fetchFiat() {
 	valMap := make(map[string]float64)
 	for _, v := range vc.Valutes {
 		valStr := strings.Replace(v.Value, ",", ".", 1)
+		valStr = strings.TrimSpace(valStr)
 		if val, err := strconv.ParseFloat(valStr, 64); err == nil {
 			valMap[v.CharCode] = val
 		}
@@ -120,11 +131,14 @@ func (w *Widget) fetchFiat() {
 }
 
 func (w *Widget) fetchCrypto() {
-	oldRates := w.cryptos
+	if len(w.cryptoSymbols) == 0 {
+		return
+	}
+	oldCryptos := w.cryptos
 
 	ids := strings.Join(w.cryptoSymbols, ",")
 	url := fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd", ids)
-	body, err := w.fetcher.Fetch(url)
+	body, err := w.ftch.Fetch(url)
 	if err != nil {
 		w.err = err
 		return
@@ -141,14 +155,18 @@ func (w *Widget) fetchCrypto() {
 		if prices, ok := result[id]; ok {
 			if price, ok := prices["usd"]; ok {
 				oldVal := 0.0
-				for _, r := range oldRates {
+				for _, r := range oldCryptos {
 					if r.Code == id {
 						oldVal = r.Value
 						break
 					}
 				}
+				code := w.cryptoNames[id]
+				if code == "" {
+					code = strings.ToUpper(id)
+				}
 				newCryptos = append(newCryptos, Rate{
-					Code:   strings.ToUpper(id[:3]),
+					Code:   code,
 					Value:  price,
 					Change: price - oldVal,
 				})
@@ -165,8 +183,11 @@ func (w *Widget) View(width int) string {
 
 	if w.err != nil {
 		sb.WriteString(theme.Error.Render(" ⚠ Rates error "))
+	}
+
+	if len(w.rates) == 0 {
+		sb.WriteString(theme.DimText.Render(" Loading rates... "))
 	} else {
-		sb.WriteString(theme.DimText.Render(" Exchange rates ") + "\n")
 		for _, r := range w.rates {
 			arrow := " "
 			if r.Change > 0 {
@@ -174,25 +195,22 @@ func (w *Widget) View(width int) string {
 			} else if r.Change < 0 {
 				arrow = "↓"
 			}
-			valStr := fmt.Sprintf("%.2f", r.Value)
-			sb.WriteString(fmt.Sprintf("%s  %s %s", r.Code, arrow, valStr) + "\n")
-		}
-
-		if len(w.cryptos) > 0 {
-			sb.WriteString("")
-			for _, c := range w.cryptos {
-				arrow := " "
-				if c.Change > 0 {
-					arrow = "↑"
-				} else if c.Change < 0 {
-					arrow = "↓"
-				}
-				sb.WriteString(fmt.Sprintf("%s %s $%.0f", c.Code, arrow, c.Value) + "\n")
-			}
+			sb.WriteString(fmt.Sprintf("%s  %s %.2f", r.Code, arrow, r.Value) + "\n")
 		}
 	}
 
-	return lipgloss.NewStyle().
-		Width(width - 2).
-		Render(sb.String())
+	if len(w.cryptos) > 0 {
+		sb.WriteString("\n")
+		for _, c := range w.cryptos {
+			arrow := " "
+			if c.Change > 0 {
+				arrow = "↑"
+			} else if c.Change < 0 {
+				arrow = "↓"
+			}
+			sb.WriteString(fmt.Sprintf("%s %s $%.0f", c.Code, arrow, c.Value) + "\n")
+		}
+	}
+
+	return lipgloss.NewStyle().Width(width - 2).Render(sb.String())
 }
