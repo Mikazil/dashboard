@@ -23,7 +23,7 @@ func (w *Widget) Update() {
 	w.now = time.Now()
 }
 
-func (w *Widget) View(width int) string {
+func (w *Widget) View(width, height int) string {
 	now := w.now
 	year, month, _ := now.Date()
 	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
@@ -82,5 +82,6 @@ func (w *Widget) View(width int) string {
 		sb.WriteString(l + "\n")
 	}
 
-	return lipgloss.NewStyle().Width(width - 2).Render(sb.String())
+	content := lipgloss.NewStyle().Width(width - 2).Render(sb.String())
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }

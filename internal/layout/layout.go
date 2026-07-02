@@ -50,6 +50,7 @@ func (g *Grid) View(width, height int) string {
 				Background(theme.Bg).
 				Foreground(theme.Primary).
 				Width(cw - 2).
+				Height(ch - 2).
 				Render(content)
 
 			colStrs = append(colStrs, box)

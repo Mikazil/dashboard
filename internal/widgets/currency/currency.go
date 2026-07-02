@@ -160,7 +160,7 @@ func (w *Widget) fetchCrypto() {
 	}
 }
 
-func (w *Widget) View(width int) string {
+func (w *Widget) View(width, height int) string {
 	var sb strings.Builder
 
 	if w.err != nil && len(w.rates) == 0 {
@@ -177,7 +177,7 @@ func (w *Widget) View(width int) string {
 			} else if r.Change < 0 {
 				arrow = "↓"
 			}
-			sb.WriteString(fmt.Sprintf("%s  %s %.2f", r.Code, arrow, r.Value) + "\n")
+			sb.WriteString(fmt.Sprintf("  %s  %s %.2f", r.Code, arrow, r.Value) + "\n")
 		}
 	}
 
@@ -190,9 +190,10 @@ func (w *Widget) View(width int) string {
 			} else if c.Change < 0 {
 				arrow = "↓"
 			}
-			sb.WriteString(fmt.Sprintf("%s %s $%.0f", c.Code, arrow, c.Value) + "\n")
+			sb.WriteString(fmt.Sprintf("  %s %s $%.0f", c.Code, arrow, c.Value) + "\n")
 		}
 	}
 
-	return lipgloss.NewStyle().Width(width - 2).Render(sb.String())
+	content := lipgloss.NewStyle().Width(width - 2).Render(sb.String())
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }

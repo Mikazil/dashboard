@@ -7,6 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mmcdole/gofeed"
 
 	"dashboard/internal/theme"
@@ -184,10 +185,21 @@ func (w *Widget) View(width int) string {
 		text += string(w.track[:need])
 	}
 
-	label := "TECH"
-	combined := " " + label + " | " + text
-	if utf8.RuneCountInString(combined) > width {
-		combined = string([]rune(combined)[:width])
+	labelStyle := lipgloss.NewStyle().
+		Background(theme.Secondary).
+		Foreground(theme.Bg).
+		Bold(true).
+		Padding(0, 1)
+	label := labelStyle.Render("TECH")
+	prefixWidth := 9
+	combined := " " + label + "  " + text
+	visLen := prefixWidth + utf8.RuneCountInString(text)
+	if visLen > width {
+		avail := width - prefixWidth
+		if avail < 0 {
+			avail = 0
+		}
+		combined = " " + label + "  " + string([]rune(text)[:avail])
 	}
 	combined = fmt.Sprintf("%-*s", width, combined)
 

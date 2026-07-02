@@ -122,29 +122,29 @@ func (m model) View() string {
 		{
 			{
 				Title: "Time",
-				View: func(w, h int) string {
-					return m.clock.View(w)
-				},
+			View: func(w, h int) string {
+				return m.clock.View(w, h)
 			},
-			{
-				Title: "Weather",
-				View: func(w, h int) string {
-					return m.weather.View(w)
-				},
+		},
+		{
+			Title: "Weather",
+			View: func(w, h int) string {
+				return m.weather.View(w, h)
+			},
 			},
 		},
 		{
 			{
 				Title: "Rates",
-				View: func(w, h int) string {
-					return m.currency.View(w)
-				},
+			View: func(w, h int) string {
+				return m.currency.View(w, h)
 			},
-			{
-				Title: "Calendar",
-				View: func(w, h int) string {
-					return m.calendar.View(w)
-				},
+		},
+		{
+			Title: "Calendar",
+			View: func(w, h int) string {
+				return m.calendar.View(w, h)
+			},
 			},
 		},
 	})

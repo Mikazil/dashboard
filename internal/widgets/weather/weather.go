@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+
 	"dashboard/internal/fetcher"
 	"dashboard/internal/theme"
 )
@@ -101,24 +103,26 @@ func (w *Widget) fetch() {
 	w.lastFetch = time.Now()
 }
 
-func (w *Widget) View(width int) string {
+func (w *Widget) View(width, height int) string {
+	var content string
+
 	if w.err != nil {
-		return theme.Error.Render(" [!] Weather error ")
+		content = theme.Error.Render(" [!] Weather error ")
+	} else if w.data == nil {
+		content = theme.DimText.Render(" Loading... ")
+	} else {
+		content = fmt.Sprintf("%s\n%s\n %s\n %s\n\nHumidity %s\nWind     %s\nPressure %s",
+			theme.DimText.Render(" Weather "),
+			theme.Base.Render(w.data.Icon),
+			theme.Base.Render(w.data.Temperature),
+			theme.DimText.Render(w.data.Description),
+			theme.Base.Render(w.data.Humidity),
+			theme.Base.Render(w.data.Wind),
+			theme.Base.Render(w.data.Pressure),
+		)
 	}
 
-	if w.data == nil {
-		return theme.DimText.Render(" Loading... ")
-	}
-
-	return fmt.Sprintf("%s\n%s\n %s\n %s\n\nHumidity %s\nWind     %s\nPressure %s",
-		theme.DimText.Render(" Weather "),
-		theme.Base.Render(w.data.Icon),
-		theme.Base.Render(w.data.Temperature),
-		theme.DimText.Render(w.data.Description),
-		theme.Base.Render(w.data.Humidity),
-		theme.Base.Render(w.data.Wind),
-		theme.Base.Render(w.data.Pressure),
-	)
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }
 
 func getASCIIIcon(desc string) string {

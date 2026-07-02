@@ -26,7 +26,7 @@ func (w *Widget) Update() {
 	w.time = time.Now()
 }
 
-func (w *Widget) View(width int) string {
+func (w *Widget) View(width, height int) string {
 	now := w.time
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	if loc != nil {
@@ -37,23 +37,23 @@ func (w *Widget) View(width int) string {
 	dateStr := now.Format("Monday")
 	dateStr2 := now.Format("02 Jan 2006")
 
+	clock := bigClock(timeStr, width)
+
 	pad1 := (width - lipgloss.Width(dateStr)) / 2
 	if pad1 < 0 {
 		pad1 = 0
 	}
-	dateLine1 := strings.Repeat(" ", pad1) + theme.DimText.Render(dateStr)
+	date1 := strings.Repeat(" ", pad1) + theme.DimText.Render(dateStr)
 
 	pad2 := (width - lipgloss.Width(dateStr2)) / 2
 	if pad2 < 0 {
 		pad2 = 0
 	}
-	dateLine2 := strings.Repeat(" ", pad2) + theme.DimText.Render(dateStr2)
+	date2 := strings.Repeat(" ", pad2) + theme.DimText.Render(dateStr2)
 
-	return lipgloss.JoinVertical(lipgloss.Center,
-		bigClock(timeStr, width),
-		dateLine1,
-		dateLine2,
-	)
+	content := lipgloss.JoinVertical(lipgloss.Center, clock, date1, date2)
+
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }
 
 func bigClock(t string, width int) string {
