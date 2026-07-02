@@ -1,6 +1,7 @@
 weather:
   city: "Kemerovo"
   interval: "5m"
+  api_key: ""
 currency:
   codes: ["USD", "EUR", "CNY"]
   crypto: ["bitcoin"]

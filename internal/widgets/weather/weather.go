@@ -1,7 +1,9 @@
 package weather
 
 import (
+	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -22,15 +24,17 @@ type Widget struct {
 	data      *WeatherData
 	ftch      *fetcher.Fetcher
 	city      string
+	apiKey    string
 	interval  time.Duration
 	lastFetch time.Time
 	err       error
 }
 
-func New(city string, interval time.Duration) *Widget {
+func New(city, apiKey string, interval time.Duration) *Widget {
 	return &Widget{
 		ftch:     fetcher.New(15 * time.Second),
 		city:     city,
+		apiKey:   apiKey,
 		interval: interval,
 	}
 }
@@ -45,32 +49,53 @@ func (w *Widget) Update() {
 }
 
 func (w *Widget) fetch() {
-	body, err := w.ftch.Fetch(fmt.Sprintf("https://wttr.in/%s?format=%%t+%%h+%%w+%%P+%%C", w.city))
+	if w.apiKey == "" {
+		w.err = fmt.Errorf("no api_key in config")
+		return
+	}
+
+	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric", w.city, w.apiKey)
+	body, err := w.ftch.Fetch(url)
 	if err != nil {
 		w.err = err
 		return
 	}
 
-	line := strings.TrimSpace(string(body))
-	parts := strings.Split(line, " ")
-	if len(parts) < 5 {
-		w.err = fmt.Errorf("unexpected format: %s", line)
+	var resp struct {
+		Main struct {
+			Temp     float64 `json:"temp"`
+			Humidity float64 `json:"humidity"`
+			Pressure float64 `json:"pressure"`
+		} `json:"main"`
+		Wind struct {
+			Speed float64 `json:"speed"`
+		} `json:"wind"`
+		Weather []struct {
+			Main        string `json:"main"`
+			Description string `json:"description"`
+		} `json:"weather"`
+	}
+
+	if err := json.Unmarshal(body, &resp); err != nil {
+		w.err = err
 		return
 	}
 
-	temp := parts[0]
-	hum := strings.TrimRight(parts[1], "%")
-	wind := parts[2]
-	pres := parts[3]
-	desc := strings.Join(parts[4:], " ")
+	if len(resp.Weather) == 0 {
+		w.err = fmt.Errorf("no weather data")
+		return
+	}
+
+	desc := resp.Weather[0].Description
+	pres := int(math.Round(resp.Main.Pressure * 0.75006))
 
 	w.data = &WeatherData{
-		Temperature: temp,
-		Description: desc,
-		Humidity:    hum + "%",
-		Wind:        wind,
-		Pressure:    pres,
-		Icon:        getASCIIIcon(desc),
+		Temperature: fmt.Sprintf("%.0f°C", resp.Main.Temp),
+		Description: strings.Title(desc),
+		Humidity:    fmt.Sprintf("%.0f%%", resp.Main.Humidity),
+		Wind:        fmt.Sprintf("%.0fm/s", resp.Wind.Speed),
+		Pressure:    fmt.Sprintf("%dmmHg", pres),
+		Icon:        getASCIIIcon(desc + " " + resp.Weather[0].Main),
 	}
 	w.err = nil
 	w.lastFetch = time.Now()

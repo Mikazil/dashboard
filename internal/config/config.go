@@ -16,6 +16,7 @@ type Config struct {
 type WeatherConfig struct {
 	City     string `yaml:"city"`
 	Interval string `yaml:"interval"`
+	APIKey   string `yaml:"api_key"`
 }
 
 type CurrencyConfig struct {
@@ -47,6 +48,7 @@ func Default() Config {
 		Weather: WeatherConfig{
 			City:     "Moscow",
 			Interval: "5m",
+			APIKey:   "",
 		},
 		Currency: CurrencyConfig{
 			Codes:    []string{"USD", "EUR", "CNY"},

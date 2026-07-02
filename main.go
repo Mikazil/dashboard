@@ -69,7 +69,7 @@ func initialModel() model {
 
 	m := model{
 		clock:    clock.New(),
-		weather:  weather.New(cfg.Weather.City, weatherInt),
+		weather:  weather.New(cfg.Weather.City, cfg.Weather.APIKey, weatherInt),
 		currency: currency.New(cfg.Currency.Codes, cfg.Currency.Crypto, currInt),
 		calendar: calendar.New(),
 		ticker:   ticker.New(rssFeeds, rssInt, rssSpeed),
