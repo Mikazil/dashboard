@@ -14,7 +14,7 @@ rss:
       url: "https://www.opennet.ru/opennews/opennews_all.rss"
     - name: "3DNews"
       url: "https://3dnews.ru/software/export/rss"
-  scroll_speed: "80ms"
+  scroll_speed: "100ms"
   update_interval: "15m"
 theme:
   primary: "#FFB000"

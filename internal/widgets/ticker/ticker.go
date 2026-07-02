@@ -3,6 +3,7 @@ package ticker
 import (
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mmcdole/gofeed"
@@ -18,7 +19,7 @@ type RSSFeedConfig struct {
 type Widget struct {
 	feeds        []RSSFeedConfig
 	headlines    []string
-	track        string
+	track        []rune
 	scrollPos    int
 	mu           sync.RWMutex
 	updateInt    time.Duration
@@ -71,20 +72,15 @@ func (w *Widget) fetchAll() {
 }
 
 func (w *Widget) buildTrack() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	if len(w.headlines) == 0 {
-		w.track = ""
+		w.track = nil
 		return
 	}
-
 	var result string
 	for _, h := range w.headlines {
-		result += " ▸ " + h + "  ◆ "
+		result += "  ▸  " + h + "  ◆  "
 	}
-	result += " "
-	w.track = result
+	w.track = []rune(result)
 }
 
 func (w *Widget) scrollLoop() {
@@ -111,7 +107,9 @@ func (w *Widget) Update() {
 	if time.Since(w.lastFetch) >= w.updateInt {
 		go func() {
 			w.fetchAll()
+			w.mu.Lock()
 			w.buildTrack()
+			w.mu.Unlock()
 		}()
 	}
 }
@@ -124,18 +122,29 @@ func (w *Widget) View(width int) string {
 		return theme.Error.Render(" ⚠ RSS error ")
 	}
 
-	if len(w.headlines) == 0 || w.track == "" {
+	if len(w.headlines) == 0 || len(w.track) == 0 {
 		return theme.DimText.Render(" Loading... ")
 	}
 
-	pos := w.scrollPos % len(w.track)
-	end := pos + width
-	if end > len(w.track) {
-		end = len(w.track)
+	trackLen := len(w.track)
+	pos := w.scrollPos % trackLen
+
+	var visible []rune
+	if pos+width <= trackLen {
+		visible = w.track[pos : pos+width]
+	} else {
+		first := w.track[pos:]
+		second := w.track[:width-len(first)]
+		visible = append(first, second...)
 	}
-	visible := w.track[pos:end]
-	if len(visible) < width {
-		visible += w.track[:width-len(visible)]
+
+	text := string(visible)
+	if utf8.RuneCountInString(text) < width {
+		need := width - utf8.RuneCountInString(text)
+		if need > trackLen {
+			need = trackLen
+		}
+		text += string(w.track[:need])
 	}
 
 	labelStyle := theme.Title.Copy().
@@ -144,6 +153,6 @@ func (w *Widget) View(width int) string {
 
 	return lipgloss.JoinHorizontal(lipgloss.Center,
 		labelStyle.Render(" TECH "),
-		theme.Base.Render(" "+visible+" "),
+		theme.Base.Render(" "+text+" "),
 	)
 }
