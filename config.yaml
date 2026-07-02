@@ -7,12 +7,14 @@ currency:
   interval: "5m"
 rss:
   feeds:
-    - name: "Habr"
-      url: "https://habr.com/ru/rss/hubs/all/"
-    - name: "Lenta"
-      url: "https://lenta.ru/rss/news"
-  scroll_speed: "50ms"
-  update_interval: "1h"
+    - name: "HN"
+      url: "https://hnrss.org/frontpage"
+    - name: "Ars"
+      url: "https://feeds.arstechnica.com/arstechnica/index"
+    - name: "Phoronix"
+      url: "https://www.phoronix.com/rss.php"
+  scroll_speed: "80ms"
+  update_interval: "15m"
 theme:
   primary: "#FFB000"
   secondary: "#E89900"

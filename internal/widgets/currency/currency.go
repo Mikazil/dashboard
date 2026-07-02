@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/text/encoding/charmap"
+
 	"dashboard/internal/fetcher"
 	"dashboard/internal/theme"
 )
@@ -68,7 +70,6 @@ func (w *Widget) fetch() {
 
 func (w *Widget) fetchFiat() {
 	oldRates := w.rates
-	w.err = nil
 
 	resp, err := http.Get("https://www.cbr.ru/scripts/XML_daily.asp")
 	if err != nil {
@@ -78,6 +79,13 @@ func (w *Widget) fetchFiat() {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		w.err = err
+		return
+	}
+
+	decoder := charmap.Windows1251.NewDecoder()
+	body, err = decoder.Bytes(body)
 	if err != nil {
 		w.err = err
 		return
@@ -127,6 +135,7 @@ func (w *Widget) fetchFiat() {
 	}
 	if len(newRates) > 0 {
 		w.rates = newRates
+		w.err = nil
 	}
 }
 
@@ -175,13 +184,14 @@ func (w *Widget) fetchCrypto() {
 	}
 	if len(newCryptos) > 0 {
 		w.cryptos = newCryptos
+		w.err = nil
 	}
 }
 
 func (w *Widget) View(width int) string {
 	var sb strings.Builder
 
-	if w.err != nil {
+	if w.err != nil && len(w.rates) == 0 {
 		sb.WriteString(theme.Error.Render(" ⚠ Rates error "))
 	}
 

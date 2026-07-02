@@ -2,7 +2,6 @@ package ticker
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,15 +17,16 @@ type RSSFeedConfig struct {
 }
 
 type Widget struct {
-	feeds     []RSSFeedConfig
-	headlines []string
-	position  int
-	mu        sync.RWMutex
-	updateInt time.Duration
+	feeds       []RSSFeedConfig
+	headlines   []string
+	headlineIdx int
+	scrollPos   int
+	mu          sync.RWMutex
+	updateInt   time.Duration
 	scrollSpeed time.Duration
-	lastFetch time.Time
-	err       error
-	done      chan struct{}
+	lastFetch   time.Time
+	err         error
+	done        chan struct{}
 }
 
 func New(feeds []RSSFeedConfig, updateInterval, scrollSpeed time.Duration) *Widget {
@@ -56,7 +56,7 @@ func (w *Widget) fetchAll() {
 		}
 		for _, item := range f.Items {
 			if item.Title != "" {
-				all = append(all, fmt.Sprintf("%s: %s", feed.Name, item.Title))
+				all = append(all, fmt.Sprintf("▸ %s", item.Title))
 			}
 		}
 	}
@@ -78,9 +78,13 @@ func (w *Widget) scrollLoop() {
 		select {
 		case <-ticker.C:
 			w.mu.Lock()
-			w.position++
 			if len(w.headlines) > 0 {
-				w.position %= len(w.headlines)
+				w.scrollPos++
+				text := w.headlines[w.headlineIdx]
+				if w.scrollPos >= len(text) {
+					w.headlineIdx = (w.headlineIdx + 1) % len(w.headlines)
+					w.scrollPos = 0
+				}
 			}
 			w.mu.Unlock()
 		case <-w.done:
@@ -108,33 +112,26 @@ func (w *Widget) View(width int) string {
 	}
 
 	if len(w.headlines) == 0 {
-		return theme.DimText.Render(" Loading headlines... ")
+		return theme.DimText.Render(" Loading... ")
 	}
 
-	idx := w.position % len(w.headlines)
-	headline := w.headlines[idx]
+	text := w.headlines[w.headlineIdx]
+	sep := "  ◆  "
+	track := text + sep + text
 
-	parts := strings.SplitN(headline, ": ", 2)
-	label := parts[0]
-	text := ""
-	if len(parts) > 1 {
-		text = parts[1]
+	pos := w.scrollPos % (len(text) + len(sep))
+	visible := track[pos:]
+	if len(visible) > width {
+		visible = visible[:width]
 	}
+	visible = fmt.Sprintf("%-*s", width, visible)
 
-	prefix := " NEWS ▸ "
 	labelStyle := theme.Title.Copy().
 		Background(theme.DimBg).
 		Foreground(theme.Primary)
 
-	rest := prefix + text
-	if len(rest) > width-3 {
-		rest = rest[:width-3]
-	}
-
-	scroll := " " + rest
-
 	return lipgloss.JoinHorizontal(lipgloss.Center,
-		labelStyle.Render(" "+label+" "),
-		theme.Base.Render(scroll),
+		labelStyle.Render(" TECH "),
+		theme.Base.Render(" "+visible+" "),
 	)
 }
