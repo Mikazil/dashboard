@@ -164,7 +164,7 @@ func (w *Widget) View(width int) string {
 	var sb strings.Builder
 
 	if w.err != nil && len(w.rates) == 0 {
-		sb.WriteString(theme.Error.Render(" ⚠ Rates error "))
+		sb.WriteString(theme.Error.Render(" [!] Rates error "))
 	}
 
 	if len(w.rates) == 0 {

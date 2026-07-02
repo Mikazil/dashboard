@@ -119,7 +119,7 @@ func (w *Widget) View(width int) string {
 	defer w.mu.RUnlock()
 
 	if w.err != nil && len(w.headlines) == 0 {
-		return theme.Error.Render(" ⚠ RSS error ")
+		return theme.Error.Render(" [!] RSS error ")
 	}
 
 	if len(w.headlines) == 0 || len(w.track) == 0 {

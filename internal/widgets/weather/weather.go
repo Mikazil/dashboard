@@ -103,7 +103,7 @@ func (w *Widget) fetch() {
 
 func (w *Widget) View(width int) string {
 	if w.err != nil {
-		return theme.Error.Render(" ⚠ Weather error ")
+		return theme.Error.Render(" [!] Weather error ")
 	}
 
 	if w.data == nil {
