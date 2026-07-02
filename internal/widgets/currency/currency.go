@@ -2,16 +2,12 @@ package currency
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"golang.org/x/text/encoding/charmap"
 
 	"dashboard/internal/fetcher"
 	"dashboard/internal/theme"
@@ -19,7 +15,6 @@ import (
 
 type Rate struct {
 	Code   string
-	Name   string
 	Value  float64
 	Change float64
 }
@@ -71,67 +66,44 @@ func (w *Widget) fetch() {
 func (w *Widget) fetchFiat() {
 	oldRates := w.rates
 
-	resp, err := http.Get("https://www.cbr.ru/scripts/XML_daily.asp")
+	resp, err := http.Get("https://open.er-api.com/v6/latest/RUB")
 	if err != nil {
 		w.err = err
 		return
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	var result struct {
+		Base  string             `json:"base_code"`
+		Rates map[string]float64 `json:"rates"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		w.err = err
 		return
-	}
-
-	decoder := charmap.Windows1251.NewDecoder()
-	body, err = decoder.Bytes(body)
-	if err != nil {
-		w.err = err
-		return
-	}
-
-	type Valute struct {
-		CharCode string `xml:"CharCode"`
-		Name     string `xml:"Name"`
-		Value    string `xml:"Value"`
-	}
-
-	type ValCurs struct {
-		Valutes []Valute `xml:"Valute"`
-	}
-
-	var vc ValCurs
-	if err := xml.Unmarshal(body, &vc); err != nil {
-		w.err = err
-		return
-	}
-
-	valMap := make(map[string]float64)
-	for _, v := range vc.Valutes {
-		valStr := strings.Replace(v.Value, ",", ".", 1)
-		valStr = strings.TrimSpace(valStr)
-		if val, err := strconv.ParseFloat(valStr, 64); err == nil {
-			valMap[v.CharCode] = val
-		}
 	}
 
 	var newRates []Rate
 	for _, code := range w.codes {
-		if val, ok := valMap[code]; ok {
-			oldVal := 0.0
-			for _, r := range oldRates {
-				if r.Code == code {
-					oldVal = r.Value
-					break
-				}
-			}
-			newRates = append(newRates, Rate{
-				Code:   code,
-				Value:  val,
-				Change: val - oldVal,
-			})
+		rate, ok := result.Rates[code]
+		if !ok {
+			continue
 		}
+		// API returns how many units per 1 RUB.
+		// Convert to RUB per unit (standard display)
+		val := 1.0 / rate
+
+		oldVal := 0.0
+		for _, r := range oldRates {
+			if r.Code == code {
+				oldVal = r.Value
+				break
+			}
+		}
+		newRates = append(newRates, Rate{
+			Code:   code,
+			Value:  val,
+			Change: val - oldVal,
+		})
 	}
 	if len(newRates) > 0 {
 		w.rates = newRates

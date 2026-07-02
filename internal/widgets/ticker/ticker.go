@@ -1,7 +1,6 @@
 package ticker
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -17,16 +16,16 @@ type RSSFeedConfig struct {
 }
 
 type Widget struct {
-	feeds       []RSSFeedConfig
-	headlines   []string
-	headlineIdx int
-	scrollPos   int
-	mu          sync.RWMutex
-	updateInt   time.Duration
-	scrollSpeed time.Duration
-	lastFetch   time.Time
-	err         error
-	done        chan struct{}
+	feeds        []RSSFeedConfig
+	headlines    []string
+	track        string
+	scrollPos    int
+	mu           sync.RWMutex
+	updateInt    time.Duration
+	scrollSpeed  time.Duration
+	lastFetch    time.Time
+	err          error
+	done         chan struct{}
 }
 
 func New(feeds []RSSFeedConfig, updateInterval, scrollSpeed time.Duration) *Widget {
@@ -41,6 +40,7 @@ func New(feeds []RSSFeedConfig, updateInterval, scrollSpeed time.Duration) *Widg
 
 func (w *Widget) Init() {
 	w.fetchAll()
+	w.buildTrack()
 	go w.scrollLoop()
 }
 
@@ -56,7 +56,7 @@ func (w *Widget) fetchAll() {
 		}
 		for _, item := range f.Items {
 			if item.Title != "" {
-				all = append(all, fmt.Sprintf("▸ %s", item.Title))
+				all = append(all, item.Title)
 			}
 		}
 	}
@@ -70,6 +70,23 @@ func (w *Widget) fetchAll() {
 	w.mu.Unlock()
 }
 
+func (w *Widget) buildTrack() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if len(w.headlines) == 0 {
+		w.track = ""
+		return
+	}
+
+	var result string
+	for _, h := range w.headlines {
+		result += " ▸ " + h + "  ◆ "
+	}
+	result += " "
+	w.track = result
+}
+
 func (w *Widget) scrollLoop() {
 	ticker := time.NewTicker(w.scrollSpeed)
 	defer ticker.Stop()
@@ -78,14 +95,7 @@ func (w *Widget) scrollLoop() {
 		select {
 		case <-ticker.C:
 			w.mu.Lock()
-			if len(w.headlines) > 0 {
-				w.scrollPos++
-				text := w.headlines[w.headlineIdx]
-				if w.scrollPos >= len(text) {
-					w.headlineIdx = (w.headlineIdx + 1) % len(w.headlines)
-					w.scrollPos = 0
-				}
-			}
+			w.scrollPos++
 			w.mu.Unlock()
 		case <-w.done:
 			return
@@ -99,7 +109,10 @@ func (w *Widget) Stop() {
 
 func (w *Widget) Update() {
 	if time.Since(w.lastFetch) >= w.updateInt {
-		go w.fetchAll()
+		go func() {
+			w.fetchAll()
+			w.buildTrack()
+		}()
 	}
 }
 
@@ -111,20 +124,19 @@ func (w *Widget) View(width int) string {
 		return theme.Error.Render(" ⚠ RSS error ")
 	}
 
-	if len(w.headlines) == 0 {
+	if len(w.headlines) == 0 || w.track == "" {
 		return theme.DimText.Render(" Loading... ")
 	}
 
-	text := w.headlines[w.headlineIdx]
-	sep := "  ◆  "
-	track := text + sep + text
-
-	pos := w.scrollPos % (len(text) + len(sep))
-	visible := track[pos:]
-	if len(visible) > width {
-		visible = visible[:width]
+	pos := w.scrollPos % len(w.track)
+	end := pos + width
+	if end > len(w.track) {
+		end = len(w.track)
 	}
-	visible = fmt.Sprintf("%-*s", width, visible)
+	visible := w.track[pos:end]
+	if len(visible) < width {
+		visible += w.track[:width-len(visible)]
+	}
 
 	labelStyle := theme.Title.Copy().
 		Background(theme.DimBg).

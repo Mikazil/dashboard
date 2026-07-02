@@ -7,12 +7,12 @@ currency:
   interval: "5m"
 rss:
   feeds:
-    - name: "HN"
-      url: "https://hnrss.org/frontpage"
-    - name: "Ars"
-      url: "https://feeds.arstechnica.com/arstechnica/index"
-    - name: "Phoronix"
-      url: "https://www.phoronix.com/rss.php"
+    - name: "Habr"
+      url: "https://habr.com/ru/rss/flows/develop/all/"
+    - name: "OpenNET"
+      url: "https://www.opennet.ru/opennews/opennews_all.rss"
+    - name: "3DNews"
+      url: "https://3dnews.ru/software/export/rss"
   scroll_speed: "80ms"
   update_interval: "15m"
 theme:
