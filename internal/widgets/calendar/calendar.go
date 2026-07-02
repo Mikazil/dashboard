@@ -64,7 +64,7 @@ func (w *Widget) View(width, height int) string {
 		}
 
 		if line.Len() > 0 {
-			line.WriteString(" ")
+			line.WriteString("  ")
 		}
 		line.WriteString(cell)
 
