@@ -1,6 +1,7 @@
 package ticker
 
 import (
+	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -45,6 +46,42 @@ func (w *Widget) Init() {
 	go w.scrollLoop()
 }
 
+func sanitize(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch {
+		case r == '\u2014' || r == '\u2013': // em/en dash -> -
+			b.WriteRune('-')
+		case r == '\u00AB' || r == '\u00BB': // «» -> "
+			b.WriteRune('"')
+		case r == '\u2018' || r == '\u2019': // '' -> '
+			b.WriteRune('\'')
+		case r == '\u201C' || r == '\u201D': // "" -> "
+			b.WriteRune('"')
+		case r == '\u2026': // … -> ...
+			b.WriteString("...")
+		case r == '\u2022': // • -> *
+			b.WriteRune('*')
+		case r == '\u2122': // ™ -> (tm)
+			b.WriteString("(tm)")
+		case r == '\u00A9': // © -> (c)
+			b.WriteString("(c)")
+		case r == '\u00AE': // ® -> (r)
+			b.WriteString("(r)")
+		case r == '\u00B7': // · -> .
+			b.WriteRune('.')
+		case r > 127 && !(0x0400 <= r && r <= 0x04FF): // non-ASCII, non-Cyrillic
+			continue
+		case r < 32 && r != '\n' && r != '\t':
+			continue
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 func (w *Widget) fetchAll() {
 	var all []string
 	parser := gofeed.NewParser()
@@ -57,7 +94,7 @@ func (w *Widget) fetchAll() {
 		}
 		for _, item := range f.Items {
 			if item.Title != "" {
-				all = append(all, item.Title)
+				all = append(all, sanitize(item.Title))
 			}
 		}
 	}
