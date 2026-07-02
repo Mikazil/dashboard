@@ -78,7 +78,7 @@ func (w *Widget) buildTrack() {
 	}
 	var result string
 	for _, h := range w.headlines {
-		result += "  ▸  " + h + "  ◆  "
+		result += " > " + h + " | "
 	}
 	w.track = []rune(result)
 }
